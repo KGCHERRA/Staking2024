@@ -4,21 +4,13 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Staking is ERC20, ERC20Permit {
-    constructor(IERC20 _stakingToken)
-        ERC20("MyToken", "MTK")
-        ERC20Permit("MyToken")
-    {
-        stakingToken = _stakingToken;
-        owner = msg.sender;
-    }
-
+contract Staking is ERC20, ERC20Permit, Ownable, Pausable, ReentrancyGuard {
     IERC20 public stakingToken;
     uint256 public rewardRate = 100;
     uint256 public totalStaked;
-
-    address public owner;
 
     struct Stake {
         uint256 amount;
@@ -28,13 +20,16 @@ contract Staking is ERC20, ERC20Permit {
 
     mapping(address => Stake) public stakes;
 
-    modifier isOwner() {
-        require(msg.sender == owner, "Caller is not owner");
-        _;
+    constructor(IERC20 _stakingToken)
+        ERC20("MyToken", "MTK")
+        ERC20Permit("MyToken")
+        Ownable(msg.sender)
+    {
+        stakingToken = _stakingToken;
     }
 
     // Function to stake tokens
-    function stake(uint256 _amount) external {
+    function stake(uint256 _amount) external whenNotPaused nonReentrant {
         require(_amount > 0, "Cannot stake 0 tokens");
 
         // Transfer the staking tokens from the user to the contract
@@ -57,7 +52,7 @@ contract Staking is ERC20, ERC20Permit {
     }
 
     // Function to claim rewards
-    function claimRewards() public {
+    function claimRewards() public whenNotPaused nonReentrant {
         uint256 rewards = pendingRewards(msg.sender);
         require(rewards > 0, "No rewards available");
 
@@ -66,12 +61,12 @@ contract Staking is ERC20, ERC20Permit {
         userStake.rewardDebt = 0;
         userStake.lastBlock = block.number;
 
-        // Transfer the rewards (here assuming the stakingToken itself is used as rewards)
+        // Transfer the rewards (assuming the stakingToken itself is used as rewards)
         stakingToken.transfer(msg.sender, rewards);
     }
 
     // Function to unstake tokens (with rewards)
-    function unstake(uint256 _amount) external {
+    function unstake(uint256 _amount) external whenNotPaused nonReentrant {
         Stake storage userStake = stakes[msg.sender];
         require(userStake.amount >= _amount, "Insufficient staked amount");
 
@@ -87,7 +82,17 @@ contract Staking is ERC20, ERC20Permit {
     }
 
     // Function to set reward rate (only owner)
-    function setRewardRate(uint256 _newRate) external isOwner {
+    function setRewardRate(uint256 _newRate) external onlyOwner {
         rewardRate = _newRate;
+    }
+
+    // Function to pause the contract (only owner)
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    // Function to unpause the contract (only owner)
+    function unpause() external onlyOwner {
+        _unpause();
     }
 }
