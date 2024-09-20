@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+//import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+//import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract Staking is ERC20, ERC20Permit, Ownable, Pausable, ReentrancyGuard {
+contract Staking is Ownable, Pausable, ReentrancyGuard  {
+    using SafeERC20 for IERC20;
     IERC20 public stakingToken;
     uint256 public rewardRate = 100;
     uint256 public totalStaked;
@@ -19,17 +21,27 @@ contract Staking is ERC20, ERC20Permit, Ownable, Pausable, ReentrancyGuard {
     }
 
     mapping(address => Stake) public stakes;
+    mapping(address => bool) public approved;
 
-    constructor(IERC20 _stakingToken)
-        ERC20("MyToken", "MTK")
-        ERC20Permit("MyToken")
-        Ownable(msg.sender)
-    {
+    constructor(IERC20 _stakingToken) Ownable(msg.sender) {
         stakingToken = _stakingToken;
     }
 
+    // Check if user is preapproved to stake tokens
+    modifier isApproved() { 
+        require(   approved[msg.sender] == true, "Caller is not an approved user");
+        _;
+    }
+
+    function approve(address _user) external onlyOwner  {
+
+        approved[_user] = true;
+
+    }
+
+
     // Function to stake tokens
-    function stake(uint256 _amount) external whenNotPaused nonReentrant {
+    function stake(uint256 _amount)  external whenNotPaused nonReentrant isApproved payable{
         require(_amount > 0, "Cannot stake 0 tokens");
 
         // Transfer the staking tokens from the user to the contract
@@ -52,7 +64,7 @@ contract Staking is ERC20, ERC20Permit, Ownable, Pausable, ReentrancyGuard {
     }
 
     // Function to claim rewards
-    function claimRewards() public whenNotPaused nonReentrant {
+    function claimRewards() public whenNotPaused nonReentrant isApproved payable {
         uint256 rewards = pendingRewards(msg.sender);
         require(rewards > 0, "No rewards available");
 
@@ -66,7 +78,7 @@ contract Staking is ERC20, ERC20Permit, Ownable, Pausable, ReentrancyGuard {
     }
 
     // Function to unstake tokens (with rewards)
-    function unstake(uint256 _amount) external whenNotPaused nonReentrant {
+    function unstake(uint256 _amount) external whenNotPaused nonReentrant isApproved{
         Stake storage userStake = stakes[msg.sender];
         require(userStake.amount >= _amount, "Insufficient staked amount");
 
