@@ -1,3 +1,10 @@
+## Members
+
+1. Gabriela Carvajal Herra
+2. Josue Arroyo Aráuz
+3. Álvaro Araya Obando
+4. Jose Cruz
+
 # Staking Contract
 
 This is a Solidity smart contract that implements a staking mechanism for ERC20 tokens. Users can stake tokens to earn rewards based on the duration and amount of their stake. The contract is designed to be secure and efficient, utilizing OpenZeppelin libraries for access control, pausing, reentrancy protection, and safe token transfers.
@@ -20,8 +27,3 @@ To install the required OpenZeppelin contracts, use npm:
 
 ```bash
 npm install @openzeppelin/contracts
-
-
-## Members
-
-Kristely Gabriela Carvajal Herra
