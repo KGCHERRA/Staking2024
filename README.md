@@ -20,3 +20,8 @@ To install the required OpenZeppelin contracts, use npm:
 
 ```bash
 npm install @openzeppelin/contracts
+
+
+## Members
+
+Kristely Gabriela Carvajal Herra
